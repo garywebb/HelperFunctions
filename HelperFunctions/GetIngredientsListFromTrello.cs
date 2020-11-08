@@ -38,25 +38,25 @@ namespace HelperFunctions
             await board.Lists.Refresh();
 
             var recipeIngredients = new List<object>();
-            var thisWeekLists = board.Lists.Where(list => list.Name.StartsWith("This Week")).ToList();
-            foreach (var list in thisWeekLists)
+            var thisWeekListCards = board.Lists
+                .Where(list => list.Name.StartsWith("This Week"))
+                .SelectMany(list => list.Cards)
+                .ToList();
+            foreach (var card in thisWeekListCards)
             {
-                foreach (var card in list.Cards)
+                await card.Comments.Refresh();
+                var ingredientComment = card.Comments.SingleOrDefault(comment => comment.Data.Text.StartsWith("Ingredients"));
+                if (ingredientComment != null)
                 {
-                    await card.Comments.Refresh();
-                    var ingredientComment = card.Comments.SingleOrDefault(comment => comment.Data.Text.StartsWith("Ingredients"));
-                    if (ingredientComment != null)
-                    {
-                        var ingredientsString = ingredientComment.Data.Text.Substring("Ingredients\n".Length);
-                        var ingredients = ingredientsString.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+                    var ingredientsString = ingredientComment.Data.Text.Substring("Ingredients\n".Length);
+                    var ingredients = ingredientsString.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries);
 
-                        recipeIngredients.Add(
-                            new
-                            {
-                                RecipeName = card.Name,
-                                Ingredients = ingredients,
-                            });
-                    }
+                    recipeIngredients.Add(
+                    new
+                    {
+                        RecipeName = card.Name,
+                        Ingredients = ingredients,
+                    });
                 }
             }
             return recipeIngredients;
